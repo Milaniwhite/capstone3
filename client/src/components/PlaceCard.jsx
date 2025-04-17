@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, MapPin, Library } from 'lucide-react';
 
 export const PlaceCard = ({ place }) => {
+  console.log(place)
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <h3 className="text-xl font-semibold mb-2">{place.name}</h3>
