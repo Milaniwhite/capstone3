@@ -13,7 +13,7 @@ if (JWT_SECRET === "shhh") {
 
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL ||  'postgres://postgres:milaniwhite@localhost/career_simulation/',
+  //connectionString: process.env.DATABASE_URL ||  'postgres://postgres:milaniwhite@localhost/career_simulation/',
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
