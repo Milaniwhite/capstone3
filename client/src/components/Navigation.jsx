@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export const Navigation = ({ auth, isAdmin, navigate, logout }) => {
+export const Navigation = ({ auth, isAdmin, logout }) => {
+  const navigate = useNavigate();
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

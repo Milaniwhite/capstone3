@@ -65,10 +65,10 @@ app.post('/api/auth/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, full_name, country)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (username, email, password_hash, full_name)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, username, email, full_name;`,
-      [username, email, hashedPassword, full_name, country]
+      [username, email, hashedPassword, full_name]
     );
 
     res.status(201).json(result.rows[0]);
@@ -105,10 +105,7 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '24h' }
     ); console.log('JWT Secret:', process.env.JWT_SECRET ? 'Is set' : 'Not set');
 
-    await pool.query(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
-      [user.id]
-    );
+  
 
     res.json(token);
   } catch (err) {
@@ -121,7 +118,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users/profile', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, email, full_name, bio, country, created_at FROM users WHERE id = $1',
+      'SELECT id, username, email, full_name, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
 
@@ -131,248 +128,161 @@ app.get('/api/users/profile', authenticateToken, async (req, res, next) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+// ITEM ROUTES
 
-// Place Routes
-app.get('/api/places', async (req, res) => {
+// Create a new item
+app.post('/api/items', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10, category, city } = req.query;
-    const offset = (page - 1) * limit;
+    const { name, description, category_id, address, website_url, phone_number, image_url } = req.body;
+    const created_by = req.user.id;
 
+    const result = await pool.query(
+      `INSERT INTO items (
+        name, description, category_id, address, website_url, phone_number, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      [name, description, category_id, address, website_url, phone_number, created_by]
+    );
+
+    // Add image if provided
+    if (image_url) {
+      await pool.query(
+        `INSERT INTO item_images (item_id, image_url, is_primary)
+         VALUES ($1, $2, true)`,
+        [result.rows[0].id, image_url]
+      );
+    }
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create item' });
+  }
+});
+
+// Get all items with search
+app.get('/api/items', async (req, res) => {
+  try {
+    const { search } = req.query;
     let query = `
-      SELECT p.*, c.name as category_name, ct.name as city_name,
-             COUNT(*) OVER() as total_count
-      FROM places p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN cities ct ON p.city_id = ct.id
-      WHERE 1=1
+      SELECT 
+        i.*, 
+        (SELECT image_url FROM item_images WHERE item_id = i.id AND is_primary = true LIMIT 1) as image_url,
+        COALESCE(AVG(r.rating), 0) as average_rating,
+        COUNT(r.id) as review_count
+      FROM items i
+      LEFT JOIN reviews r ON r.item_id = i.id
+      WHERE i.is_approved = true
     `;
-    const queryParams = [];
-    let paramCount = 1;
+    const params = [];
 
-    if (category) {
-      query += ` AND c.id = $${paramCount}`;
-      queryParams.push(category);
-      paramCount++;
+    if (search) {
+      query += ` AND (i.name ILIKE $1 OR i.description ILIKE $1)`;
+      params.push(`%${search}%`);
     }
 
-    if (city) {
-      query += ` AND ct.id = $${paramCount}`;
-      queryParams.push(city);
-      paramCount++;
+    query += ` GROUP BY i.id ORDER BY i.created_at DESC`;
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch items' });
+  }
+});
+
+// Get single item with details
+app.get('/api/items/:id', async (req, res) => {
+  try {
+    const itemId = req.params.id;
+
+    // Get item details
+    const itemResult = await pool.query(
+      `SELECT 
+        i.*, 
+        u.username as created_by_username,
+        COALESCE(AVG(r.rating), 0) as average_rating,
+        COUNT(r.id) as review_count
+       FROM items i
+       LEFT JOIN users u ON i.created_by = u.id
+       LEFT JOIN reviews r ON r.item_id = i.id
+       WHERE i.id = $1
+       GROUP BY i.id, u.username`,
+      [itemId]
+    );
+
+    if (itemResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
     }
 
-    query += ` ORDER BY p.name
-               LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    queryParams.push(limit, offset);
+    // Get item images
+    const imagesResult = await pool.query(
+      `SELECT * FROM item_images WHERE item_id = $1`,
+      [itemId]
+    );
 
-    const result = await pool.query(query, queryParams);
-
-    const totalCount = result.rows[0]?.total_count || 0;
-    const totalPages = Math.ceil(totalCount / limit);
+    // Get recent reviews
+    const reviewsResult = await pool.query(
+      `SELECT 
+        r.*, 
+        u.username as user_username
+       FROM reviews r
+       JOIN users u ON r.user_id = u.id
+       WHERE r.item_id = $1
+       ORDER BY r.created_at DESC
+       LIMIT 5`,
+      [itemId]
+    );
 
     res.json({
-      places: result.rows,
-      pagination: {
-        total: parseInt(totalCount),
-        pages: totalPages,
-        current_page: parseInt(page),
-        per_page: parseInt(limit)
-      }
+      ...itemResult.rows[0],
+      images: imagesResult.rows,
+      reviews: reviewsResult.rows
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Failed to fetch item details' });
   }
 });
 
-app.get('/api/places/:id', async (req, res) => {
+// Update an item
+app.put('/api/items/:id', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    // Get place details with category and city information
-    const placeResult = await pool.query(`
-      SELECT p.*, 
-             c.name as category_name,
-             ct.name as city_name,
-             COUNT(DISTINCT r.id) as review_count,
-             COALESCE(AVG(r.rating), 0) as average_rating
-      FROM places p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN cities ct ON p.city_id = ct.id
-      LEFT JOIN reviews r ON p.id = r.place_id
-      WHERE p.id = $1
-      GROUP BY p.id, c.name, ct.name
-    `, [id]);
+    const itemId = req.params.id;
+    const { name, description, category_id, address, website_url, phone_number } = req.body;
+    const userId = req.user.id;
 
-    if (placeResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Place not found' });
-    }
-
-    // Get reviews for the place
-    const reviewsResult = await pool.query(`
-      SELECT r.*, 
-             u.username, 
-             u.full_name,
-             COUNT(p.id) as photo_count
-      FROM reviews r
-      JOIN users u ON r.user_id = u.id
-      LEFT JOIN photos p ON r.id = p.review_id
-      WHERE r.place_id = $1
-      GROUP BY r.id, u.username, u.full_name
-      ORDER BY r.created_at DESC
-      LIMIT 10
-    `, [id]);
-
-    // Get photos for the place
-    const photosResult = await pool.query(`
-      SELECT p.*, u.username
-      FROM photos p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.place_id = $1
-      ORDER BY p.created_at DESC
-      LIMIT 5
-    `, [id]);
-
-    const place = placeResult.rows[0];
-    place.reviews = reviewsResult.rows;
-    place.photos = photosResult.rows;
-
-    res.json(place);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Review Routes
-app.post('/api/places/:placeId/reviews', authenticateToken, async (req, res, next) => {
-  try {
-    const { rating, title, content, visit_date } = req.body;
-    const { placeId } = req.params;
-
-    const result = await pool.query(
-      `INSERT INTO reviews (user_id, place_id, rating, title, content, visit_date)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [req.user.id, placeId, rating, title, content, visit_date]
+    // Verify user owns the item
+    const ownershipCheck = await pool.query(
+      `SELECT created_by FROM items WHERE id = $1`,
+      [itemId]
     );
 
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/search', async (req, res) => {
-  try {
-    const { q, category, city, rating, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-    
-    let query = `
-      SELECT p.*, 
-             c.name as category_name,
-             ct.name as city_name,
-             COALESCE(AVG(r.rating), 0) as avg_rating,
-             COUNT(DISTINCT r.id) as review_count,
-             COUNT(*) OVER() as total_count
-      FROM places p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN cities ct ON p.city_id = ct.id
-      LEFT JOIN reviews r ON p.id = r.place_id
-      WHERE 1=1
-    `;
-    
-    const queryParams = [];
-    let paramCount = 1;
-
-
-    if (category) {
-      query += ` AND c.id = $${paramCount}`;
-      queryParams.push(category);
-      paramCount++;
+    if (ownershipCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
     }
 
-    if (city) {
-      query += ` AND ct.id = $${paramCount}`;
-      queryParams.push(city);
-      paramCount++;
-    }
-    query += ` GROUP BY p.id, c.name, ct.name`;
-
-    if (rating) {
-      query += ` HAVING COALESCE(AVG(r.rating), 0) >= $${paramCount}`;
-      queryParams.push(parseFloat(rating));
-      paramCount++;
-    }
-
-    query += ` ORDER BY avg_rating DESC NULLS LAST, p.name
-    LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-queryParams.push(limit, offset);
-
-    const result = await pool.query(query, queryParams);
-
-    const totalCount = result.rows[0]?.total_count || 0;
-    const totalPages = Math.ceil(totalCount / limit);
-
-    res.json({
-      places: result.rows,
-      pagination: {
-        total: parseInt(totalCount),
-        pages: totalPages,
-        current_page: parseInt(page),
-        per_page: parseInt(limit)
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Bookmark Routes
-app.post('/api/bookmarks/:placeId', authenticateToken, async (req, res, next) => {
-  try {
-    const { notes } = req.body;
-    const { placeId } = req.params;
-
-    const result = await pool.query(
-      `INSERT INTO bookmarks (user_id, place_id, notes)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
-      [req.user.id, placeId, notes]
-    );
-
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    if (err.code === '23505') { 
-      return res.status(400).json({ error: 'Place already bookmarked' });
-    }
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Photo Upload Routes
-app.post('/api/places/:placeId/photos', authenticateToken, upload.single('photo'), async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (ownershipCheck.rows[0].created_by !== userId) {
+      return res.status(403).json({ error: 'Not authorized to update this item' });
     }
 
     const result = await pool.query(
-      `INSERT INTO photos (user_id, place_id, photo_url, caption)
-       VALUES ($1, $2, $3, $4)
+      `UPDATE items
+       SET name = $1, description = $2, category_id = $3, 
+           address = $4, website_url = $5, phone_number = $6,
+           updated_at = NOW()
+       WHERE id = $7
        RETURNING *`,
-      [req.user.id, req.params.placeId, `/uploads/${req.file.filename}`, req.body.caption]
+      [name, description, category_id, address, website_url, phone_number, itemId]
     );
 
-    res.status(201).json(result.rows[0]);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Failed to update item' });
   }
 });
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

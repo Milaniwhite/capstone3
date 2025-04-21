@@ -79,3 +79,6 @@ button:focus-visible {
   align-items: center;
   flex-direction: column;
 }
+textarea {
+  color: #000 !important;
+}

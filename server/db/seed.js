@@ -189,7 +189,7 @@ async function seed() {
       await db.query(`
         INSERT INTO item_images (item_id, image_url, is_primary)
         VALUES ($1, $2, true)
-      `, [1, 'https://via.placeholder.com/300x200?text=' + encodeURIComponent(item.name)]);
+      `, [1, 'https://th.bing.com/th/id/R.5b903cf15be6c226df356d84a83ca7c3?rik=m7JxwYDxk0csyg&riu=http%3a%2f%2fwww.readersdigest.ca%2fwp-content%2fuploads%2f2015%2f11%2fgourmet-burger.jpg&ehk=rkRu6XYjGWaKdF%2f%2fRax0o00Xt84b6WWZbYUQ1WT0ETw%3d&risl=&pid=ImgRaw&r=0' ]);
     }
 
     // Create reviews
