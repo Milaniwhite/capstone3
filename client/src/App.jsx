@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { Login } from './components/Login';
-import { Register } from './components/Register';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './components/HomePage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Navigation } from './components/Navigation';
@@ -19,9 +18,9 @@ const App = () => {
   const renderContent = () => {
     switch (currentPath) {
       case '/login':
-        return <Login login={login} />;
+        return <LoginPage login={login} />;
       case '/signup':
-        return <Register register={register} />;
+        return <RegisterPage register={register} />;
       case '/admin':
         return isAdmin ? <AdminDashboard /> : navigate('/');
       default:
@@ -30,7 +29,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <>
       <Navigation 
         auth={auth} 
         isAdmin={isAdmin} 
@@ -38,7 +37,7 @@ const App = () => {
         logout={logout} 
       />
       <main>{renderContent()}</main>
-    </div>
+    </>
   );
 };
 
