@@ -29,7 +29,7 @@ const CommentForm = ({ reviewId, onSuccess }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit comment');
+        throw new Error('Please login to submit a comment');
       }
 
       setContent('');

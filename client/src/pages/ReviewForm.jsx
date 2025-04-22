@@ -30,7 +30,7 @@ const ReviewForm = ({ existingReview, onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit review');
+        throw new Error('Please login to submit a review');
       }
 
       onSuccess();
