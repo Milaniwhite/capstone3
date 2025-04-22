@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -12,8 +12,26 @@ export const CreateItemPage = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const { auth } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        setCategories(data);
+      } catch (err) {
+        setError('Failed to load categories');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +48,7 @@ export const CreateItemPage = () => {
         body: JSON.stringify({
           name,
           description,
-          category_id: categoryId,
+          category_id: categoryId || null, 
           address,
           website_url: websiteUrl,
           phone_number: phoneNumber,
@@ -43,7 +61,6 @@ export const CreateItemPage = () => {
         throw new Error(data.error || 'Failed to create item');
       }
 
-      // Redirect to home page after successful creation
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -92,16 +109,26 @@ export const CreateItemPage = () => {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="categoryId" className="block text-gray-700 mb-2">
-              Category ID
+            <label htmlFor="category" className="block text-gray-700 mb-2">
+              Category
             </label>
-            <input
-              type="text"
-              id="categoryId"
-              className="w-full p-2 border rounded"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            />
+            {categoriesLoading ? (
+              <div className="p-2 bg-gray-100 rounded">Loading categories...</div>
+            ) : (
+              <select
+                id="category"
+                className="w-full p-2 border rounded"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="mb-4">
@@ -178,4 +205,3 @@ export const CreateItemPage = () => {
     </div>
   );
 };
-

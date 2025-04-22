@@ -82,3 +82,12 @@ button:focus-visible {
 textarea {
   color: #000 !important;
 }
+select {
+  color: #000 !important;
+}
+option {
+  color: #000 !important;
+}
+h1 {
+  color: #000 !important;
+}
