@@ -12,7 +12,7 @@ export const useAuth = () => {
     const token = window.localStorage.getItem("token");
     if (token) {
       try {
-        const response = await fetch("/api/users/profile", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -34,7 +34,7 @@ export const useAuth = () => {
 
   const login = async ({ email, password }) => {
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +57,7 @@ export const useAuth = () => {
 
   const register = async ({ username, email, password, full_name }) => {
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

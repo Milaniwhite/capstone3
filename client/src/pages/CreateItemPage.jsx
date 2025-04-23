@@ -21,7 +21,7 @@ export const CreateItemPage = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/categories');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/categories`);
         const data = await response.json();
         setCategories(data);
       } catch (err) {
@@ -39,7 +39,7 @@ export const CreateItemPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/items', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

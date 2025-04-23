@@ -21,7 +21,7 @@ export const ItemDetailPage = () => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   // Fetch item
   useEffect(() => {
-    fetch(`/api/items/${id}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/items/${id}`)
       .then(res => res.json())
       .then(data => {
         setItem(data);
@@ -31,7 +31,7 @@ export const ItemDetailPage = () => {
 
   // Fetch reviews
   useEffect(() => {
-    fetch(`/api/items/${id}/reviews`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/items/${id}/reviews`)
       .then(res => res.json())
       .then(data => {
         setReviews(data);
@@ -44,7 +44,7 @@ export const ItemDetailPage = () => {
     if (comments[reviewId]) return;
     
     setLoading(prev => ({ ...prev, comments: { ...prev.comments, [reviewId]: true } }));
-    fetch(`/api/reviews/${reviewId}/comments`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/reviews/${reviewId}/comments`)
       .then(res => res.json())
       .then(data => {
         setComments(prev => ({ ...prev, [reviewId]: data }));
@@ -55,7 +55,7 @@ export const ItemDetailPage = () => {
   const handleReviewSubmit = () => {
     setEditingReview(null);
     // Refresh reviews
-    fetch(`/api/items/${id}/reviews`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/items/${id}/reviews`)
       .then(res => res.json())
       .then(setReviews);
   };
@@ -63,7 +63,7 @@ export const ItemDetailPage = () => {
   const handleDeleteReview = (reviewId) => {
     if (!window.confirm('Delete this review?')) return;
     
-    fetch(`/api/reviews/${reviewId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth.token}` } })
+    fetch(`${import.meta.env.VITE_API_URL}/api/reviews/${reviewId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth.token}` } })
       .then(() => {
         setReviews(prev => prev.filter(r => r.id !== reviewId));
       });
@@ -71,7 +71,7 @@ export const ItemDetailPage = () => {
 
   const handleCommentSubmit = (reviewId) => {
     // Refresh comments
-    fetch(`/api/reviews/${reviewId}/comments`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/reviews/${reviewId}/comments`)
       .then(res => res.json())
       .then(data => {
         setComments(prev => ({ ...prev, [reviewId]: data }));
@@ -79,7 +79,7 @@ export const ItemDetailPage = () => {
   };
 
   const handleEditComment = (reviewId, commentId, content) => {
-    fetch(`/api/comments/${commentId}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/api/comments/${commentId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export const ItemDetailPage = () => {
   const handleDeleteComment = (reviewId, commentId) => {
     if (!window.confirm('Delete this comment?')) return;
     
-    fetch(`/api/comments/${commentId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth.token}` } })
+    fetch(`${import.meta.env.VITE_API_URL}/api/comments/${commentId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth.token}` } })
       .then(() => {
         setComments(prev => ({
           ...prev,

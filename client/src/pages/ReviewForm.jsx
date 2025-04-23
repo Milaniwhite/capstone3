@@ -20,7 +20,7 @@ const ReviewForm = ({ existingReview, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/items/${existingReview.item_id}/reviews`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/items/${existingReview.item_id}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
