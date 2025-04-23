@@ -7,6 +7,9 @@ const multer = require("multer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT || "shhh";
+const cors = require("cors");
+app.use(cors());
+
 if (JWT_SECRET === "shhh") {
   console.log("If deployed, set process.env.JWT to something other than shhh");
 }

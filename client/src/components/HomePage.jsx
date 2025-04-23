@@ -14,8 +14,8 @@ export const  HomePage = () => {
       try {
         setLoading(true);
         const url = searchTerm 
-          ? `/api/items?search=${encodeURIComponent(searchTerm)}`
-          : '/api/items';
+          ? `${import.meta.env.VITE_API_URL}/api/items?search=${encodeURIComponent(searchTerm)}`
+          : `${import.meta.env.VITE_API_URL}/api/items`;
         
         const response = await fetch(url);
         const data = await response.json();
