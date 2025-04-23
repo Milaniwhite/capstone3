@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 export const LoginForm = ({ login }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
+ const navigate = useNavigate();
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     try {
       await login({ email, password });
+      navigate('/');
     } catch (ex) {
       setError(ex.message);
     }

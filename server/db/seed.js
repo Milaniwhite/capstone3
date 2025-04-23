@@ -73,7 +73,6 @@ async function seed() {
           user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
           item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
           rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-          title VARCHAR(200) NOT NULL,
           content TEXT NOT NULL,
           is_approved BOOLEAN NOT NULL DEFAULT true,
           created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -148,7 +147,8 @@ async function seed() {
         category: 'Restaurants',
         address: '123 Main St',
         website: 'http://burgerplace.com',
-        phone: '555-1234'
+        phone: '555-1234', 
+        image_url: "https://th.bing.com/th/id/R.5b903cf15be6c226df356d84a83ca7c3?rik=m7JxwYDxk0csyg&riu=http%3a%2f%2fwww.readersdigest.ca%2fwp-content%2fuploads%2f2015%2f11%2fgourmet-burger.jpg&ehk=rkRu6XYjGWaKdF%2f%2fRax0o00Xt84b6WWZbYUQ1WT0ETw%3d&risl=&pid=ImgRaw&r=0"
       },
       { 
         name: 'Pizza Joint', 
@@ -156,13 +156,15 @@ async function seed() {
         category: 'Restaurants',
         address: '456 Elm St',
         website: 'http://pizzajoint.com',
-        phone: '555-5678'
+        phone: '555-5678',
+        image_url:"https://dminteriors.lk/wp-content/uploads/2024/04/Pizza-Shop-Interior-Design-Ideas-6.jpg"
       },
       { 
         name: 'Programming Book', 
         description: 'Learn to code', 
         category: 'Books',
-        website: 'http://example.com/programming-book'
+        website: 'http://example.com/programming-book',
+        image_url:"https://th.bing.com/th/id/OIP.On7BfVpKqIaVcjvTf90_ZwHaKe?pid=ImgDet&w=474&h=670&rs=1"
       }
     ];
 
@@ -175,7 +177,8 @@ async function seed() {
           $1, $2,
           (SELECT id FROM categories WHERE name = $3),
           $4, $5, $6, (SELECT id FROM users WHERE username = 'user1')
-      )
+        )
+        RETURNING id
       `, [
         item.name,
         item.description,
@@ -184,30 +187,34 @@ async function seed() {
         item.website || null,
         item.phone || null
       ]);
-
-      // Add item image
-      await db.query(`
-        INSERT INTO item_images (item_id, image_url, is_primary)
-        VALUES ($1, $2, true)
-      `, [1, 'https://th.bing.com/th/id/R.5b903cf15be6c226df356d84a83ca7c3?rik=m7JxwYDxk0csyg&riu=http%3a%2f%2fwww.readersdigest.ca%2fwp-content%2fuploads%2f2015%2f11%2fgourmet-burger.jpg&ehk=rkRu6XYjGWaKdF%2f%2fRax0o00Xt84b6WWZbYUQ1WT0ETw%3d&risl=&pid=ImgRaw&r=0' ]);
+    
+      const itemId = result.rows[0].id;
+    
+    
+      if (item.image_url) {
+        await db.query(`
+          INSERT INTO item_images (item_id, image_url, is_primary)
+          VALUES ($1, $2, true)
+        `, [itemId, item.image_url]);
+      }
     }
 
     // Create reviews
     const reviews = [
-      { user: 'user1', item: 'Burger Place', rating: 5, title: 'Amazing burgers!', content: 'The best burgers I ever had.' },
-      { user: 'user2', item: 'Burger Place', rating: 4, title: 'Good burgers', content: 'Very tasty but a bit pricey.' },
-      { user: 'user1', item: 'Pizza Joint', rating: 3, title: 'Decent pizza', content: 'Not bad but nothing special.' }
+      { user: 'user1', item: 'Burger Place', rating: 5,content: 'The best burgers I ever had.' },
+      { user: 'user2', item: 'Burger Place', rating: 4, content: 'Very tasty but a bit pricey.' },
+      { user: 'user1', item: 'Pizza Joint', rating: 3, content: 'Not bad but nothing special.' }
     ];
 
     for (const review of reviews) {
       await db.query(`
-        INSERT INTO reviews (user_id, item_id, rating, title, content)
+        INSERT INTO reviews (user_id, item_id, rating, content)
         VALUES (
           (SELECT id FROM users WHERE username = $1),
           (SELECT id FROM items WHERE name = $2),
-          $3, $4, $5
+           $3, $4
         )
-      `, [review.user, review.item, review.rating, review.title, review.content]);
+      `, [review.user, review.item, review.rating, review.content]);
     }
 
     // Create review comments

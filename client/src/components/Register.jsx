@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 export const RegisterForm = ({ register }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-
+  const navigate = useNavigate();
   const handleSubmit = async (ev) => {
+    
     ev.preventDefault();
     try {
       await register({ username, email, password, full_name: fullName });
+        navigate('/');
     } catch (ex) {
       setError(ex.message);
     }

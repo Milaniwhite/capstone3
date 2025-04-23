@@ -18,7 +18,7 @@ export const ItemDetailPage = () => {
   });
   const [editingReview, setEditingReview] = useState(null);
   const [editingComments, setEditingComments] = useState({});
-
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   // Fetch item
   useEffect(() => {
     fetch(`/api/items/${id}`)
@@ -174,13 +174,13 @@ export const ItemDetailPage = () => {
                     <>
                       <button
                         onClick={() => setEditingReview(review)}
-                        className="text-blue-600 text-sm"
+                        className="text-blue-600 item-sm font-bold"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteReview(review.id)}
-                        className="text-red-600 text-sm"
+                        className="text-red-600 item-sm font-bold"
                       >
                         Delete
                       </button>
@@ -189,7 +189,7 @@ export const ItemDetailPage = () => {
                 </div>
               </div>
               <p className="text-gray-700 my-2">{review.content}</p>
-              <p className="text-sm text-gray-500">
+              <p className="item-sm font-bold text-gray-500">
                 {new Date(review.created_at).toLocaleDateString()}
               </p>
 
@@ -197,7 +197,7 @@ export const ItemDetailPage = () => {
               <div className="mt-4 pl-4 border-l-2 border-gray-200">
                 <button
                   onClick={() => fetchComments(review.id)}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="item-sm font-bold text-blue-600 hover:underline"
                 >
                   {comments[review.id]?.length || 0} comments
                 </button>
@@ -206,7 +206,7 @@ export const ItemDetailPage = () => {
                   <div>Loading comments...</div>
                 ) : (
                   comments[review.id]?.map(comment => (
-                    <div key={comment.id} className="mt-3 text-sm">
+                    <div key={comment.id} className="mt-3 item-sm font-bold">
                       <div className="flex justify-between items-start">
                         <span className="font-medium">{comment.user_username}</span>
                         {auth?.id === comment.user_id && (
@@ -231,7 +231,7 @@ export const ItemDetailPage = () => {
                           <textarea
                             defaultValue={comment.content}
                             ref={el => el && (el.value = comment.content)}
-                            className="w-full p-1 border rounded text-sm"
+                            className="w-full p-1 border rounded item-sm font-bold"
                             rows="2"
                           />
                           <button

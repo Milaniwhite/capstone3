@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export const useAuth = () => {
   const [auth, setAuth] = useState({});
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     attemptLoginWithToken();
   }, []);
 
   const attemptLoginWithToken = async () => {
-    const token = window.localStorage.getItem('token');
+    const token = window.localStorage.getItem("token");
     if (token) {
       try {
-        const response = await fetch('/api/users/profile', {
+        const response = await fetch("/api/users/profile", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -21,12 +21,12 @@ export const useAuth = () => {
           const userData = await response.json();
           setAuth({ token, user: userData });
         } else {
-          window.localStorage.removeItem('token');
+          window.localStorage.removeItem("token");
           setAuth({});
         }
       } catch (err) {
-        console.error('Error fetching user profile:', err);
-        window.localStorage.removeItem('token');
+        console.error("Error fetching user profile:", err);
+        window.localStorage.removeItem("token");
         setAuth({});
       }
     }
@@ -34,20 +34,20 @@ export const useAuth = () => {
 
   const login = async ({ email, password }) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || "Login failed");
       }
-      
-      window.localStorage.setItem('token', data);
+
+      window.localStorage.setItem("token", data);
       await attemptLoginWithToken();
     } catch (err) {
       setError(err.message);
@@ -57,19 +57,19 @@ export const useAuth = () => {
 
   const register = async ({ username, email, password, full_name }) => {
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, email, password, full_name }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || "Registration failed");
       }
-      
+
       await login({ email, password });
     } catch (err) {
       setError(err.message);
@@ -78,18 +78,22 @@ export const useAuth = () => {
   };
 
   const logout = () => {
-    window.localStorage.removeItem('token');
+    window.localStorage.removeItem("token");
     setAuth({});
   };
 
-  const isAdmin = auth.user?.role === 'admin';
+  const isAdmin = auth.user?.role === "admin";
 
   return {
-    auth,
+    auth: {
+      ...auth,
+      id: auth.user?.id,
+      token: auth.token,
+    },
     login,
     register,
     logout,
     error,
-    isAdmin
+    isAdmin,
   };
 };
