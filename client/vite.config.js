@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://capstone3-5io4.onrender.com',
         changeOrigin: true,
       }
     }
